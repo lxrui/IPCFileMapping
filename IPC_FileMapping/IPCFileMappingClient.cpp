@@ -4,17 +4,13 @@ CIPCFileMappingClient::CIPCFileMappingClient(const char * mappingFileName, size_
 {
 	_hMapFile = nullptr;
 	_pBuf = nullptr;
-	//µÍÎ»
-	_clientIdx0 = 0;
-	//¸ßÎ»
-	_clientIdx1 = 0;
-	_serverIndex0 = 0;
-	_serverIndex1 = 0;
+	_clientIndx = 0;
+	_serverIndx = 0;
 	_bInitialized = false;
 	_bIsUpToDate = false;
 	_sMappingFileName = mappingFileName;
 	_cmdSize = cmdSize;
-	_bufSize = _cmdSize * MAX_INDEX0 * MAX_INDEX1 + 2;
+	_bufSize = _cmdSize * MAX_INDEX + sizeof(DWORD);
 	_bInitialized = _initClient();
 }
 
@@ -41,10 +37,8 @@ bool CIPCFileMappingClient::_initClient()
 		//printf("Could not map view of file (%d).\n", GetLastError());
 		return false;
 	}
-	_clientIdx0 = m_getServerIdx0();
-	_clientIdx1 = m_getServerIdx1();
-	_serverIndex0 = _clientIdx0;
-	_serverIndex1 = _clientIdx1;
+	_clientIndx = m_getIndx();
+	_serverIndx = _clientIndx;
 	return true;
 }
 
@@ -56,7 +50,7 @@ CIPCFileMappingClient::~CIPCFileMappingClient()
 	_hMapFile = nullptr;
 }
 
-bool CIPCFileMappingClient::m_updateCmds(const size_t nCmdSize, void * B)
+bool CIPCFileMappingClient::m_updateCmds(const size_t nCmdSize, void * output)
 {
 	if (_bInitialized)
 	{
@@ -69,11 +63,10 @@ bool CIPCFileMappingClient::m_updateCmds(const size_t nCmdSize, void * B)
 		//size_t nServerPos = m_getServerIdx1() * MAX_INDEX1 + m_getServerIdx0();
 		if (_bIsUpToDate)
 		{
-			_serverIndex1 = m_getServerIdx1();
-			_serverIndex0 = m_getServerIdx0();
+			_serverIndx = m_getIndx();
 		}
 
-		if (_clientIdx1 * MAX_INDEX1 + _clientIdx0 == _serverIndex1 * MAX_INDEX1 + _serverIndex0)
+		if (_clientIndx == _serverIndx)
 		{
 			//printf("the cmd is up to date.\n");
 			_bIsUpToDate = true;
@@ -81,15 +74,14 @@ bool CIPCFileMappingClient::m_updateCmds(const size_t nCmdSize, void * B)
 		}
 		else/* if (nClientPos < nServerPos)*/
 		{
-			++_clientIdx0;
-			if (_clientIdx1 * MAX_INDEX1 + _clientIdx0 == MAX_INDEX0 * MAX_INDEX1)
+			++_clientIndx;
+			if (_clientIndx == MAX_INDEX)
 			{
-				_clientIdx0 = 0;
-				_clientIdx1 = 0;
+				_clientIndx = 0;
 			}
 			if (nullptr != _pBuf)
 			{
-				memcpy(B, _pBuf + 2 * sizeof(unsigned char) + (_clientIdx1 * MAX_INDEX1 + _clientIdx0) * _cmdSize, nCmdSize);
+				memcpy(output, _pBuf + sizeof(DWORD) + (_clientIndx) * _cmdSize, nCmdSize);
 				_bIsUpToDate = false;
 			}
 			return true;
@@ -104,19 +96,12 @@ bool CIPCFileMappingClient::m_updateCmds(const size_t nCmdSize, void * B)
 	return true;
 }
 
-unsigned char CIPCFileMappingClient::m_getServerIdx0()
+DWORD CIPCFileMappingClient::m_getIndx()
 {
 	if (_pBuf == nullptr)
 	{
 		return 0;
 	}
-	return _pBuf[0];
-}
-unsigned char CIPCFileMappingClient::m_getServerIdx1()
-{
-	if (_pBuf == nullptr)
-	{
-		return 0;
-	}
-	return _pBuf[1];
+	DWORD * p = (DWORD *)_pBuf;
+	return *p;
 }
