@@ -6,7 +6,7 @@
 CIPCFileMappingServer * pIPCServer;
 CIPCFileMappingClient * pIPCClient;
 
-IPCAPI void WINAPI IPCFileMapping::createServer(const char * mappingFileName, int cmdSize)
+IPCAPI void WINAPI IPCFileMapping::createServer(const char * mappingFileName, size_t cmdSize)
 {
 	pIPCServer = new CIPCFileMappingServer(mappingFileName, cmdSize);
 }
@@ -25,7 +25,7 @@ IPCAPI void WINAPI IPCFileMapping::sendCmd(void * cmdArray, size_t nCmdSize)
 	}
 }
 
-IPCAPI void WINAPI IPCFileMapping::createClient(const char * mappingFileName, int cmdSize)
+IPCAPI void WINAPI IPCFileMapping::createClient(const char * mappingFileName, size_t cmdSize)
 {
 	pIPCClient = new CIPCFileMappingClient(mappingFileName, cmdSize);
 }
